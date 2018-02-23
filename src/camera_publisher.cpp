@@ -1,16 +1,20 @@
+#include "industry_camera_bridge/CameraApi.h"
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
 // #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <sstream> // for converting the command line parameter to integer
+#include <stdio.h>
+
+unsigned char *g_pRgbBuffer;
 
 int main(int argc, char** argv)
 {
   // Check if video source has been passed as a parameter
   //if(argv[1] == NULL) return 1;
 
-  ros::init(argc, argv, "image_publisher");
+  ros::init(argc, argv, "industry_camera_image_publisher");
   ros::NodeHandle nh;
   image_transport::ImageTransport it(nh);
   image_transport::Publisher pub = it.advertise("camera/image", 1);
@@ -59,7 +63,38 @@ int main(int argc, char** argv)
   
   CameraGetCapability(hCamera,&tCapability);
   g_pRgbBuffer = (unsigned char*)malloc(tCapability.sResolutionRange.iHeightMax*tCapability.sResolutionRange.iWidthMax*3);
-  CameraPlay(hCamera);
+    
+  
+  
+    tSdkImageResolution     imgResolution;
+  CameraGetImageResolution(hCamera, &imgResolution);
+    //std::cout << imgResolution.iIndex << std::endl;
+    imgResolution.iIndex = 14;
+    CameraSetImageResolution(hCamera, &imgResolution);
+    CameraGetImageResolution(hCamera, &imgResolution);
+    //std::cout << imgResolution.iIndex << std::endl;
+    //std::cout << imgResolution.acDescription << std::endl;
+    
+    BOOL pAeState;
+    CameraGetAeState( hCamera, &pAeState);
+    //std::cout << "pAeState:";
+    //std::cout << pAeState << std::endl;
+    CameraSetAeState( hCamera, 0);
+    CameraGetAeState( hCamera, &pAeState);
+    //std::cout << "pAeState:";
+    //std::cout << pAeState << std::endl;
+
+    double fExposureTime;
+    CameraGetExposureTime(hCamera, &fExposureTime);    
+    //std::cout << fExposureTime << std::endl;
+    fExposureTime = 10000;
+    CameraSetExposureTime(hCamera, fExposureTime);
+    CameraGetExposureTime(hCamera, &fExposureTime);    
+    //std::cout << fExposureTime << std::endl;
+  
+    
+    
+    CameraPlay(hCamera);
   
   if(tCapability.sIspCapacity.bMonoSensor){
         channel=1;
@@ -69,6 +104,7 @@ int main(int argc, char** argv)
         CameraSetIspOutFormat(hCamera,CAMERA_MEDIA_TYPE_BGR8);
     }
 
+  int test_print = 0;
   ros::Rate loop_rate(5);
   while (nh.ok()) {
     /*
@@ -80,7 +116,6 @@ int main(int argc, char** argv)
       cv::waitKey(1);
     }
     */
-    
     if(CameraGetImageBuffer(hCamera,&sFrameInfo,&pbyBuffer,1000) == CAMERA_STATUS_SUCCESS)
 		{
 		    CameraImageProcess(hCamera, pbyBuffer, g_pRgbBuffer,&sFrameInfo);
@@ -94,13 +129,14 @@ int main(int argc, char** argv)
             #if 0
             cvShowImage("OpenCV Demo",iplImage);
             #else
-            cv::Mat Iimag(iplImage);
+            //cv::Mat Iimag(iplImage);
+            cv::Mat Iimag = cv::cvarrToMat(iplImage);
             //imshow("OpenCV Demo",Iimag);
             #endif
 
             msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", Iimag).toImageMsg();
             pub.publish(msg);
-             cv::waitKey(1);
+             cv::waitKey(5);
 
             // MUST release the buffer allocated from CameraReleaseImageBuffer after CameraGetImageBuffer.
 			//Otherwise next CameraGetImageBuffer will be blocked until CameraReleaseImageBuffer been called to release the buffer.
@@ -108,7 +144,11 @@ int main(int argc, char** argv)
 
 		}
 
+
     ros::spinOnce();
     loop_rate.sleep();
   }
+
+  CameraUnInit(hCamera);
+  free(g_pRgbBuffer);
 }

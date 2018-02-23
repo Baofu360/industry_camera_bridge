@@ -1,0 +1,3 @@
+<launch>
+    <node name="industry_camera" pkg="industry_camera_bridge" type="camera_publisher" launch-prefix="sudo -E"/>
+</launch>

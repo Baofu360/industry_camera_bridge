@@ -12,7 +12,7 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
 # add the publisher
 add_executable(camera_publisher src/camera_publisher.cpp)
 add_dependencies(camera_publisher ${catkin_EXPORTED_TARGETS} ${${PROJECT_NAME}_EXPORTED_TARGETS})
-target_link_libraries(camera_publisher ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+target_link_libraries(camera_publisher ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} -lMVSDK)
 
 
 # Mark executables and/or libraries for installation
