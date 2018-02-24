@@ -105,7 +105,7 @@ int main(int argc, char** argv)
     }
 
   int test_print = 0;
-  ros::Rate loop_rate(5);
+  ros::Rate loop_rate(100);
   while (nh.ok()) {
     /*
     cap >> frame;
